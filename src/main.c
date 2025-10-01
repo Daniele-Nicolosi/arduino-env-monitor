@@ -1,27 +1,27 @@
-#include "../avr_common/uart.h"
-#include "../avr_common/i2c.h"
+#include "../avr_common/uart/uart.h"
+#include "../avr_common/i2c/i2c.h"
+#include "sensors/bme280.h"
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <stdio.h>
+#include <stdlib.h>  // dtostrf
 
 int main(void) {
     printf_init();
     i2c_init();
     sei();
 
-    printf("I2C Scanner avviato\n");
+    bme280_init();
 
-    for (uint8_t addr = 1; addr < 127; addr++) {
-        uint8_t status = i2c_start(addr, I2C_WRITE);
-        if (status == 0x18 || status == 0x40) {
-            printf("Trovato dispositivo a 0x%02X\n", addr);
-        }
-        i2c_stop();
-        _delay_ms(5);
+    char buf[16];
+
+    while (1) {
+        float t = bme280_read_temperature();
+        dtostrf(t, 6, 2, buf); // converte float in stringa
+        printf("Temperatura = %s C\n", buf);
+        _delay_ms(2000);
     }
-
-    printf("Scanner completato\n");
-
-    while (1);
 }
+
+
 
