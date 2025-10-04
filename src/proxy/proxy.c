@@ -22,7 +22,6 @@ static void str_to_lower(char *s) {
 void proxy_init(void) {
     printf_init();   // UART con printf
     i2c_init();      // I2C @100kHz
-    sei();           // Abilita interrupt globali
     bme280_init();   // Inizializza sensore e carica calibrazioni
     oled_init();   // inizializza OLED
 }
