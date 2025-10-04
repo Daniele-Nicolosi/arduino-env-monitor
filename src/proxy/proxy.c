@@ -7,6 +7,7 @@
 #include "../../avr_common/uart/uart.h"
 #include "../../avr_common/i2c/i2c.h"
 #include "../sensors/bme280.h"
+#include "../display/oled.h"
 
 // --- Funzioni di supporto ---
 
@@ -23,6 +24,7 @@ void proxy_init(void) {
     i2c_init();      // I2C @100kHz
     sei();           // Abilita interrupt globali
     bme280_init();   // Inizializza sensore e carica calibrazioni
+    oled_init();   // inizializza OLED
 }
 
 // --- Loop principale del proxy ---
@@ -30,16 +32,16 @@ void proxy_run(void) {
     enum sensor_t { S_TEMP, S_PRESS, S_HUM };
 
     // Stampa il menu e le istruzioni una sola volta
-    printf("\r\n---Lettura sensore---\r\n");
-    printf("-) Per poter leggere la temperatura, digitare \"read temp\"\r\n");
-    printf("-) Per poter leggere la pressione, digitare \"read press\"\r\n");
-    printf("-) Per poter leggere l'umidita', digitare \"read hum\"\r\n");
-    printf("-) Per uscire, digitare \"q\"\r\n");
-    printf("E' possibile leggere piu' valori, ad esempio: \"read temp press hum\"\r\n");
+    printf("\r\n---Sensor Reading---\r\n");
+    printf("-) To read the temperature, type \"read temp\"\r\n");
+    printf("-) To read the pressure, type \"read press\"\r\n");
+    printf("-) To read the humidity, type \"read hum\"\r\n");
+    printf("-) To exit, type \"q\"\r\n");
+    printf("It is possible to read multiple values, e.g.: \"read temp press hum\"\r\n");
 
     int running = 1;
     while (running) {
-        printf("Digitare il parametro che si desidera leggere ---> ");
+        printf("Please enter the parameter you want to read:\n ---> ");
 
         // --- Leggi input da UART ---
         char line[128];
@@ -50,7 +52,7 @@ void proxy_run(void) {
 
         // Uscita rapida
         if ((len == 1) && (line[0] == 'q' || line[0] == 'Q')) {
-            printf("Uscita in corso...\r\n");
+            printf("Exiting...\r\n");
             break;
         }
 
@@ -89,7 +91,10 @@ void proxy_run(void) {
         if (!running) break;
 
         if (req_count == 0) {
-            printf("Nessun comando valido. Riprovare.\r\n");
+            printf("Invalid command. Please try again.\r\n");
+            oled_clear();
+            oled_print_line(1, "   INVALID COMMAND");
+            oled_print_line(5, "   Please try again");
             continue;
         }
 
@@ -97,32 +102,45 @@ void proxy_run(void) {
         // Leggi temperatura per prima per aggiornare t_fine (necessario per pressione/umidita')
         float t_cached = bme280_read_temperature();
 
-        char tbuf[16], pbuf[20], hbuf[16];
+        char tbuf[32], pbuf[32], hbuf[32];
 
-        // Stampa ogni valore su una propria riga, nell'ordine richiesto
+        // Reset buffer
+        strcpy(tbuf, "Temperature:");
+        strcpy(pbuf, "Pressure:");
+        strcpy(hbuf, "Humidity:");
+
+        // Stampa ogni valore su seriale e prepara stringhe OLED
         for (int i = 0; i < req_count; ++i) {
             switch (requests[i]) {
-                case S_TEMP:
-                    dtostrf(t_cached, 6, 2, tbuf);
-                    printf("Temperatura: %s C\r\n", tbuf);
+                case S_TEMP: {
+                    char val[16];
+                    dtostrf(t_cached, 6, 2, val);
+                    printf("Temperature: %s C\r\n", val);
+                    snprintf(tbuf, sizeof(tbuf), "Temperature: %s C", val);
                     break;
+                }
                 case S_PRESS: {
                     float p = bme280_read_pressure();
-                    dtostrf(p, 7, 2, pbuf);
-                    printf("Pressione: %s hPa\r\n", pbuf);
+                    char val[16];
+                    dtostrf(p, 7, 2, val);
+                    printf("Pressure: %s hPa\r\n", val);
+                    snprintf(pbuf, sizeof(pbuf), "Pressure: %s hPa", val);
                     break;
                 }
                 case S_HUM: {
                     float h = bme280_read_humidity();
-                    dtostrf(h, 6, 2, hbuf);
-                    printf("Umidita: %s %%\r\n", hbuf);
+                    char val[16];
+                    dtostrf(h, 6, 2, val);
+                    printf("Humidity: %s %%\r\n", val);
+                    snprintf(hbuf, sizeof(hbuf), "Humidity: %s %%", val);
                     break;
                 }
                 default:
                     break;
             }
         }
-        // Dopo la stampa dei valori, ritorna al prompt per nuova richiesta
+        // Aggiorna display OLED
+        oled_show_sensors(tbuf, pbuf, hbuf);
     }
 }
 

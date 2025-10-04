@@ -2,6 +2,7 @@
 #include "font/font.h"
 #include "../../avr_common/i2c/i2c.h"
 #include <util/delay.h>
+#include <string.h>
 
 // --- Costanti ---
 #define OLED_ADDR 0x3C   // indirizzo tipico SH1106
@@ -68,3 +69,14 @@ void oled_print_line(uint8_t line, const char *text) {
         oled_data(0x00); // spazio tra caratteri
     }
 }
+
+// --- Mostra i sensori ---
+void oled_show_sensors(const char *temp, const char *press, const char *hum) {
+    oled_clear();
+    oled_print_line(1, temp ? temp : "Temperatura:"); // se non fornito, label vuota
+    oled_print_line(3, press ? press : "Pressione:");
+    oled_print_line(5, hum ? hum : "Umidita:");
+}
+
+
+

@@ -1,25 +1,56 @@
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include <util/delay.h>
-#include "../avr_common/i2c/i2c.h"
+
+#include "proxy/proxy.h"
 #include "display/oled.h"
+#include "sensors/bme280.h"
+#include "../avr_common/uart/uart.h"
+#include "../avr_common/i2c/i2c.h"
 
 int main(void) {
-    // --- Inizializzazioni ---
-    i2c_init();    // inizializza I2C
-    oled_init();   // inizializza display
+    // Inizializzazione proxy (UART + I2C + BME280 + OLED)
+    proxy_init();
 
-    // --- Test di scrittura ---
-    oled_print_line(0, "Hello SH1106!");
-    oled_print_line(1, "Test display I2C");
-    oled_print_line(2, "Temperatura: 22 C");
-    oled_print_line(3, "Pressione: 1009 hPa");
-    oled_print_line(4, "Umidita: 48%");
+    // Messaggio iniziale su OLED
+    oled_clear();
+    oled_print_line(0, "       WELCOME!");
+    oled_print_line(4, "Use the PC to send");
+    oled_print_line(5, "commands");
 
+    // Avvia il loop proxy: riceve comandi da Cutecom e aggiorna display
+    proxy_run();
+
+    // Se esci con "q" o "exit", mostra un messaggio di chiusura
+    oled_clear();
+    oled_print_line(3, "      GOODBYE! :)");
+    _delay_ms(3000);
+    oled_clear();
     while (1) {
-        _delay_ms(1000);
-        // loop infinito, il testo resta sul display
+        // fine programma
     }
+
+    return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
