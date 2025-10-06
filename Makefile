@@ -13,3 +13,11 @@ flash: src/main.hex
 # Include le regole del prof
 include avr_common/avr.mk
 
+
+
+
+
+
+
+
+
