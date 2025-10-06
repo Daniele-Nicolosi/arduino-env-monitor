@@ -1,17 +1,54 @@
-# Quale eseguibile generare
-BINS=src/main.elf
+# ------------------------------------------------------------
+#  Makefile principale del progetto Arduino I2C Proxy
+#  Gestisce la compilazione del firmware (Arduino)
+#  e del client (programma PC)
+# ------------------------------------------------------------
 
-# Oggetti da compilare (metti qui i tuoi .c come .o)
-OBJS= src/proxy/proxy.o avr_common/uart/uart.o avr_common/i2c/i2c.o src/sensors/bme280.o src/display/oled.o src/display/font/font.o
+.PHONY: all clean firmware client
 
-# Header coinvolti
-HEADERS=src/proxy/proxy.h avr_common/uart/uart.h avr_common/i2c/i2c.h src/sensors/bme280.h src/display/oled.h src/display/font/font.h
+# ------------------------------------------------------------
+#  Target predefinito: compila firmware + client
+# ------------------------------------------------------------
+all: firmware client
 
-flash: src/main.hex
-	@echo "Caricato su Arduino Mega!"
+# ------------------------------------------------------------
+#  Compilazione del firmware per Arduino
+#  (viene gestita dal Makefile interno a src/)
+# ------------------------------------------------------------
+firmware:
+	@echo "🔧 Compilazione firmware Arduino..."
+	$(MAKE) -C src
 
-# Include le regole del prof
-include avr_common/avr.mk
+# ------------------------------------------------------------
+#  Compilazione del client per PC
+#  (viene gestita dal Makefile interno a client/)
+# ------------------------------------------------------------
+client:
+	@echo "💻 Compilazione client PC..."
+	$(MAKE) -C client
+
+# ------------------------------------------------------------
+#  Pulizia completa del progetto
+# ------------------------------------------------------------
+clean:
+	@echo "🧹 Pulizia di firmware e client..."
+	$(MAKE) -C src clean
+	$(MAKE) -C client clean
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
