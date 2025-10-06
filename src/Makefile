@@ -14,7 +14,8 @@ OBJS = proxy/proxy.o \
        ../avr_common/i2c/i2c.o \
        sensors/bme280.o \
        display/oled.o \
-       display/font/font.o
+       display/font/font.o \
+       buttons/buttons.o
 
 # ------------------------------------------------------------
 #  Header (opzionali, per chiarezza e dipendenze)
@@ -24,7 +25,8 @@ HEADERS = proxy/proxy.h \
           ../avr_common/i2c/i2c.h \
           sensors/bme280.h \
           display/oled.h \
-          display/font/font.h
+          display/font/font.h \
+          buttons/buttons.h
 
 # ------------------------------------------------------------
 #  Include il Makefile comune per la toolchain AVR
