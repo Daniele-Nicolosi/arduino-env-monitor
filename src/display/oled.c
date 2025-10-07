@@ -70,12 +70,29 @@ void oled_print_line(uint8_t line, const char *text) {
     }
 }
 
-// --- Mostra i sensori ---
+
+void oled_show_sensor(const char* temp, const char* press, const char* hum) {
+    oled_clear();
+    if (temp)  {
+        oled_print_line(3, temp);
+        return;
+    }
+    if (press) {
+        oled_print_line(3, press);
+        return;
+    }
+    if (hum)   {
+        oled_print_line(3, hum);
+        return;
+    }
+}
+
+
 void oled_show_sensors(const char *temp, const char *press, const char *hum) {
     oled_clear();
-    oled_print_line(1, temp ? temp : "Temperatura:"); // se non fornito, label vuota
-    oled_print_line(3, press ? press : "Pressione:");
-    oled_print_line(5, hum ? hum : "Umidita:");
+    oled_print_line(1, temp ? temp : "Temperature:"); 
+    oled_print_line(3, press ? press : "Pressure:");
+    oled_print_line(5, hum ? hum : "Humidity:");
 }
 
 

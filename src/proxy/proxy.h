@@ -1,10 +1,12 @@
 #pragma once
 
-// Inizializza il proxy (UART + BME280)
+// Inizializza UART, I2C, OLED, BME280 e pulsanti
 void proxy_init(void);
 
-// Avvia l'interfaccia utente del proxy (menu interattivo)
+// Avvia il menu interattivo gestito tramite pulsanti
 void proxy_run(void);
+
+
 
 
 

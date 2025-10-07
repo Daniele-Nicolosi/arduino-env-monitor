@@ -1,14 +1,26 @@
 #pragma once
-#include <avr/io.h>
 #include <stdint.h>
+#include <avr/io.h>
+#include <util/delay.h>
 
-// Definizione pin (puoi cambiare)
-#define BTN1_PIN   PD2   // Digital 2
-#define BTN2_PIN   PD3   // Digital 3
+/* ------------------------------------------------------------
+   Definizione pin dei pulsanti
+   (puoi adattarli a dove li collegherai realmente)
+------------------------------------------------------------ */
+#define BTN_SELECT_PIN PD2   // Pulsante per scorrere i parametri
+#define BTN_CONFIRM_PIN PD3  // Pulsante per confermare la scelta
 
-// Macro per leggere stato
-#define BTN1_PRESSED()  (!(PIND & (1 << BTN1_PIN)))
-#define BTN2_PRESSED()  (!(PIND & (1 << BTN2_PIN)))
-
-// Inizializzazione
+/* ------------------------------------------------------------
+   Inizializzazione dei pulsanti
+------------------------------------------------------------ */
 void buttons_init(void);
+
+/* ------------------------------------------------------------
+   Legge lo stato dei pulsanti (con debounce software)
+   Ritorna:
+     1 se BTN_SELECT premuto
+     2 se BTN_CONFIRM premuto
+     0 se nessuno
+------------------------------------------------------------ */
+uint8_t buttons_read(void);
+
