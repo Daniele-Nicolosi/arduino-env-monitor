@@ -9,21 +9,137 @@
 #include "../sensors/bme280.h"
 #include "../display/oled.h"
 #include "../buttons/buttons.h"
+#include "proxy.h"
 
-/* ------------------------------------------------------------
-   Inizializza UART, I2C, sensore BME280, display OLED e pulsanti
------------------------------------------------------------- */
+// --- Configurazione globale ---
+static uint16_t sampling_ms = 1000;
+static uint8_t log_enabled = 1;
+static temp_unit_t temp_unit = UNIT_C;
+static press_unit_t press_unit = UNIT_PA;
+
+static float last_temp = 0.0f;
+static float last_press = 0.0f;
+static float last_hum = 0.0f;
+
+// --- Utility: converte stringa in minuscolo ---
+static void str_to_lower(char *s) {
+    for (; *s; ++s)
+        *s = (*s >= 'A' && *s <= 'Z') ? *s + 32 : *s;
+}
+
+// --- Formattazione valori ---
+static void format_temp(char *out, size_t n) {
+    float t = last_temp;
+    const char *unit = "C";
+    if (temp_unit == UNIT_K) { t = t + 273.15f; unit = "K"; }
+    else if (temp_unit == UNIT_F) { t = (t * 9.0f / 5.0f) + 32.0f; unit = "F"; }
+
+    char buf[16];
+    dtostrf(t, 6, 2, buf);
+    snprintf(out, n, "Temperature: %s %s", buf, unit);
+}
+
+static void format_press(char *out, size_t n) {
+    float p = last_press;
+    if (press_unit == UNIT_BAR) {
+        p = p / 1000.0f;  // da hPa a bar
+        char buf[16];
+        dtostrf(p, 7, 3, buf);
+        snprintf(out, n, "Pressure: %s bar", buf);
+    } else {
+        char buf[16];
+        dtostrf(p, 7, 2, buf);
+        snprintf(out, n, "Pressure: %s hPa", buf);
+    }
+}
+
+static void format_hum(char *out, size_t n) {
+    char buf[16];
+    dtostrf(last_hum, 6, 2, buf);
+    snprintf(out, n, "Humidity: %s %%", buf);
+}
+
+// --- Configurazione iniziale da terminale ---
+static void proxy_configure(void) {
+    char buf[32];
+    UART_putString("\r\n=== CONFIGURAZIONE PROXY ===\r\n");
+    UART_putString("Seleziona sampling rate (ms):\r\n");
+    UART_putString("1) 250\r\n2) 500\r\n3) 1000\r\n4) 2000\r\n5) 5000\r\n> ");
+
+    while (1) {
+        UART_getString(buf, sizeof(buf));
+        int opt = atoi(buf);
+        if (opt >= 1 && opt <= 5) {
+            switch (opt) {
+                case 1: sampling_ms = 250; break;
+                case 2: sampling_ms = 500; break;
+                case 3: sampling_ms = 1000; break;
+                case 4: sampling_ms = 2000; break;
+                case 5: sampling_ms = 5000; break;
+            }
+            break;
+        }
+        UART_putString("Valore non valido. Riprova: ");
+    }
+
+    UART_putString("Unita' temperatura (C/K/F): ");
+    while (1) {
+        UART_getString(buf, sizeof(buf));
+        str_to_lower(buf);
+        if (!strcmp(buf, "c")) { temp_unit = UNIT_C; break; }
+        if (!strcmp(buf, "k")) { temp_unit = UNIT_K; break; }
+        if (!strcmp(buf, "f")) { temp_unit = UNIT_F; break; }
+        UART_putString("Valore non valido (C/K/F): ");
+    }
+
+    UART_putString("Unita' pressione (Pa/bar): ");
+    while (1) {
+        UART_getString(buf, sizeof(buf));
+        str_to_lower(buf);
+        if (!strcmp(buf, "pa")) { press_unit = UNIT_PA; break; }
+        if (!strcmp(buf, "bar")) { press_unit = UNIT_BAR; break; }
+        UART_putString("Valore non valido (Pa/bar): ");
+    }
+
+    UART_putString("Abilitare log? (on/off): ");
+    while (1) {
+        UART_getString(buf, sizeof(buf));
+        str_to_lower(buf);
+        if (!strcmp(buf, "on")) { log_enabled = 1; break; }
+        if (!strcmp(buf, "off")) { log_enabled = 0; break; }
+        UART_putString("Valore non valido (on/off): ");
+    }
+
+    UART_putString("----------------------------\r\n");
+    char conf[128];
+    snprintf(conf, sizeof(conf),
+             "Sampling: %u ms | Temp: %s | Press: %s | Log: %s\r\n",
+             sampling_ms,
+             (temp_unit == UNIT_C ? "C" : temp_unit == UNIT_K ? "K" : "F"),
+             (press_unit == UNIT_BAR ? "bar" : "hPa"),
+             (log_enabled ? "ON" : "OFF"));
+    UART_putString(conf);
+    UART_putString("Inizializzazione display...\r\n\r\n");
+}
+
+// --- Inizializzazione generale ---
 void proxy_init(void) {
     UART_init(UART_MYUBRR);
     i2c_init();
     bme280_init();
+
+    proxy_configure();
+
     oled_init();
     buttons_init();
+
+    // prime letture
+    last_temp = bme280_read_temperature();
+    last_press = bme280_read_pressure();
+    last_hum = bme280_read_humidity();
 }
 
-/* ------------------------------------------------------------
-   Mostra il menù principale con la freccia sulla voce selezionata
------------------------------------------------------------- */
+// --- Menu display ---
 static void show_menu(uint8_t sel) {
     oled_clear();
     oled_print_line(0, "SELECT PARAMETER:");
@@ -34,121 +150,86 @@ static void show_menu(uint8_t sel) {
     oled_print_line(6, (sel == 4) ? "--> Exit"        : "    Exit");
 }
 
-/* ------------------------------------------------------------
-   Mostra i valori letti dai sensori e aggiorna l'OLED
------------------------------------------------------------- */
-static void read_and_display(uint8_t mode) {
-    enum sensor_t { S_TEMP, S_PRESS, S_HUM };
-
-    float t_cached = bme280_read_temperature();
+// --- Visualizzazione valori e log ---
+static void display_and_log(uint8_t sel) {
     char tbuf[32], pbuf[32], hbuf[32];
-    strcpy(tbuf, "Temperature:");
-    strcpy(pbuf, "Pressure:");
-    strcpy(hbuf, "Humidity:");
+    format_temp(tbuf, sizeof(tbuf));
+    format_press(pbuf, sizeof(pbuf));
+    format_hum(hbuf, sizeof(hbuf));
 
-    // buffer temporanei
-    char val[16], msg[64];
-
-    if (mode == 3) {  // modalità "All"
-        float t = t_cached;
-        float p = bme280_read_pressure();
-        float h = bme280_read_humidity();
-
-        dtostrf(t, 6, 2, val);
-        snprintf(msg, sizeof(msg), "Temperature: %s C\r\n", val);
-        UART_putString(msg);
-        snprintf(tbuf, sizeof(tbuf), "Temperature: %s C", val);
-
-        dtostrf(p, 7, 2, val);
-        snprintf(msg, sizeof(msg), "Pressure: %s hPa\r\n", val);
-        UART_putString(msg);
-        snprintf(pbuf, sizeof(pbuf), "Pressure: %s hPa", val);
-
-        dtostrf(h, 6, 2, val);
-        snprintf(msg, sizeof(msg), "Humidity: %s %%\r\n", val);
-        UART_putString(msg);
-        snprintf(hbuf, sizeof(hbuf), "Humidity: %s %%", val);
-
+    if (sel == 3) {
         oled_show_sensors(tbuf, pbuf, hbuf);
-    } 
-    else { // modalità singolo parametro
-        switch (mode) {
-            case S_TEMP: {
-                dtostrf(t_cached, 6, 2, val);
-                snprintf(msg, sizeof(msg), "Temperature: %s C\r\n", val);
-                UART_putString(msg);
-                snprintf(tbuf, sizeof(tbuf), "Temperature: %s C", val);
+        if (log_enabled) {
+            UART_putString(tbuf); UART_putString("\r\n");
+            UART_putString(pbuf); UART_putString("\r\n");
+            UART_putString(hbuf); UART_putString("\r\n");
+        }
+    } else {
+        switch (sel) {
+            case 0:
                 oled_show_sensor(tbuf, NULL, NULL);
+                if (log_enabled) UART_putString(tbuf);
                 break;
-            }
-            case S_PRESS: {
-                float p = bme280_read_pressure();
-                dtostrf(p, 7, 2, val);
-                snprintf(msg, sizeof(msg), "Pressure: %s hPa\r\n", val);
-                UART_putString(msg);
-                snprintf(pbuf, sizeof(pbuf), "Pressure: %s hPa", val);
+            case 1:
                 oled_show_sensor(NULL, pbuf, NULL);
+                if (log_enabled) UART_putString(pbuf);
                 break;
-            }
-            case S_HUM: {
-                float h = bme280_read_humidity();
-                dtostrf(h, 6, 2, val);
-                snprintf(msg, sizeof(msg), "Humidity: %s %%\r\n", val);
-                UART_putString(msg);
-                snprintf(hbuf, sizeof(hbuf), "Humidity: %s %%", val);
+            case 2:
                 oled_show_sensor(NULL, NULL, hbuf);
-                break;
-            }
-            default:
+                if (log_enabled) UART_putString(hbuf);
                 break;
         }
+        if (log_enabled) UART_putString("\r\n");
     }
 }
 
-/* ------------------------------------------------------------
-   proxy_run()
-   Gestisce il menù e la lettura con pulsanti SELECT/CONFIRM
------------------------------------------------------------- */
+// --- Ciclo principale ---
 void proxy_run(void) {
-    uint8_t selection = 0;
+    uint8_t sel = 0;
     uint8_t in_menu = 1;
+    uint16_t elapsed = 0;
 
-    show_menu(selection);
+    show_menu(sel);
 
     while (1) {
+        if (elapsed >= sampling_ms) {
+            last_temp = bme280_read_temperature();
+            last_press = bme280_read_pressure();
+            last_hum = bme280_read_humidity();
+            elapsed = 0;
+        }
+
         uint8_t btn = buttons_read();
 
         if (in_menu) {
-            if (btn == 1) { // SELECT → cambia riga
-                selection = (selection + 1) % 5;
-                show_menu(selection);
-            } 
-            else if (btn == 2) { // CONFIRM
-                if (selection == 4) { // Exit
+            if (btn == 1) {
+                sel = (sel + 1) % 5;
+                show_menu(sel);
+            } else if (btn == 2) {
+                if (sel == 4) {
+                    UART_putString("#EXIT#\r\n");
                     oled_clear();
                     oled_print_line(3, "     GOODBYE! :)");
-                    UART_putString("Program terminated.\r\n");
                     _delay_ms(2000);
                     oled_clear();
                     return;
-                } 
-                else {
-                    read_and_display(selection);
+                } else {
+                    display_and_log(sel);
                     in_menu = 0;
                 }
             }
-        } 
-        else {
-            // dopo la visualizzazione → ritorna al menù
+        } else {
             if (btn == 1 || btn == 2) {
                 in_menu = 1;
-                show_menu(selection);
+                show_menu(sel);
             }
         }
 
-        _delay_ms(150);
+        _delay_ms(10);
+        elapsed += 10;
     }
 }
+
 
 
 

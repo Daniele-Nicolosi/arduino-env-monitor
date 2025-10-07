@@ -1,6 +1,6 @@
-// client.c - Lettura seriale per progetto Arduino I2C Proxy
-// Modalità predefinita: lettura log da /dev/ttyACM0 @19200 baud
-// Struttura: open → setup → read/write → close
+// client.c - REPL full-duplex per progetto Arduino I2C Proxy
+// Default: /dev/ttyACM0 @19200, inoltro tastiera->seriale e stampa log seriale->stdout
+// Struttura: open → setup (termios) → loop select() (read/write) → close
 
 #include <errno.h>
 #include <termios.h>
@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <sys/select.h>
 
 #ifndef CRTSCTS
 #define CRTSCTS 0
@@ -49,41 +50,30 @@ static int serial_set_interface_attribs(int fd, int baudrate) {
         return -1;
     }
 
+    cfmakeraw(&tty);                // modalità RAW
     cfsetospeed(&tty, speed);
     cfsetispeed(&tty, speed);
-    cfmakeraw(&tty);
 
+    // 8N1, nessun flow control
     tty.c_cflag &= ~(PARENB | PARODD | CSTOPB | CSIZE | CRTSCTS);
     tty.c_cflag |= (CS8 | CLOCAL | CREAD);
 
+    // Letture "reattive": non bloccare in read() (VMIN=0), timeout 0.1s (VTIME=1)
     tty.c_cc[VMIN]  = 0;
-    tty.c_cc[VTIME] = 5;  // timeout 0.5s
+    tty.c_cc[VTIME] = 1;
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0) {
         fprintf(stderr, "Errore %d da tcsetattr\n", errno);
         return -1;
     }
 
+    // (opzionale) torna blocking a livello di file descriptor,
+    // ma con VMIN/VTIME e select() siamo già a posto.
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags != -1) fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
+
+    tcflush(fd, TCIOFLUSH);         // pulizia buffer I/O
     return 0;
-}
-
-/* ------------------------------------------------------------
-   Imposta modalità bloccante/non bloccante
------------------------------------------------------------- */
-static void serial_set_blocking(int fd, int should_block) {
-    struct termios tty;
-    memset(&tty, 0, sizeof tty);
-
-    if (tcgetattr(fd, &tty) != 0) {
-        fprintf(stderr, "Errore %d da tcgetattr\n", errno);
-        return;
-    }
-
-    tty.c_cc[VMIN]  = should_block ? 1 : 0;
-    tty.c_cc[VTIME] = should_block ? 5 : 1;
-
-    if (tcsetattr(fd, TCSANOW, &tty) != 0)
-        fprintf(stderr, "Errore %d impostando termios\n", errno);
 }
 
 /* ------------------------------------------------------------
@@ -99,34 +89,15 @@ static int serial_open(const char *name) {
 }
 
 /* ------------------------------------------------------------
-   Usage (help) - marcata come unused per evitare warning
------------------------------------------------------------- */
-static void __attribute__((unused)) usage(const char *prog) {
-    fprintf(stderr,
-        "Uso: %s [device] [baudrate] [mode]\n"
-        "  device   predefinito: /dev/ttyACM0\n"
-        "  baudrate predefinito: 19200\n"
-        "  mode = 1 → lettura log (default)\n"
-        "  mode = 0 → scrittura comandi\n\n"
-        "Esempi:\n"
-        "  %s               (usa /dev/ttyACM0, 19200, lettura)\n"
-        "  %s /dev/ttyUSB0 115200 1\n"
-        "  %s /dev/ttyACM0 19200 0\n",
-        prog, prog, prog, prog);
-}
-
-/* ------------------------------------------------------------
    main()
-   Default: /dev/ttyACM0 @19200 baud, modalità log
+   Default: /dev/ttyACM0 @19200 baud, modalità REPL (duplex)
 ------------------------------------------------------------ */
 int main(int argc, char **argv) {
     const char *device = "/dev/ttyACM0";
     int baud = 19200;
-    int mode = 1; // lettura log per default
 
     if (argc > 1) device = argv[1];
-    if (argc > 2) baud = atoi(argv[2]);
-    if (argc > 3) mode = atoi(argv[3]);
+    if (argc > 2) baud    = atoi(argv[2]);
 
     int fd = serial_open(device);
     if (fd < 0) return 1;
@@ -136,40 +107,76 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    serial_set_blocking(fd, 1);
-
     printf("==============================================\n");
-    printf("   🔌 Arduino I2C Proxy - Serial Monitor\n");
+    printf("   🔌 Arduino I2C Proxy - Terminale seriale\n");
     printf("==============================================\n");
     printf(" Dispositivo: %s\n", device);
     printf(" Baudrate:    %d\n", baud);
-    printf(" Modalità:    %s\n", mode ? "Lettura log (default)" : "Scrittura comandi");
     printf("----------------------------------------------\n");
-    printf(" Premi Ctrl+C per uscire.\n\n");
+    printf(" • Digita risposte/valori e premi INVIO.\n");
+    printf(" • Il client invierà sempre <CR> (carriage return) alla scheda.\n");
+    printf(" • Uscita automatica quando la scheda invia #EXIT#.\n");
+    printf(" • In alternativa, Ctrl+C per terminare.\n\n");
 
-    char buf[512];
     while (1) {
-        memset(buf, 0, sizeof(buf));
+        fd_set rfds;
+        FD_ZERO(&rfds);
+        FD_SET(fd, &rfds);               // seriale
+        FD_SET(STDIN_FILENO, &rfds);     // tastiera
 
-        if (mode) {
-            // Lettura log dal proxy
-            int n = read(fd, buf, sizeof(buf) - 1);
+        int maxfd = (fd > STDIN_FILENO ? fd : STDIN_FILENO);
+        int r = select(maxfd + 1, &rfds, NULL, NULL, NULL);
+        if (r < 0) {
+            if (errno == EINTR) continue;
+            perror("select");
+            break;
+        }
+
+        // --- Dalla seriale → stdout ---
+        if (FD_ISSET(fd, &rfds)) {
+            char sbuf[512];
+            ssize_t n = read(fd, sbuf, sizeof(sbuf));
             if (n > 0) {
-                printf("%s", buf);
+                fwrite(sbuf, 1, (size_t)n, stdout);
                 fflush(stdout);
+
+                // chiusura remota
+                if (memmem(sbuf, (size_t)n, "#EXIT#", 6) != NULL) {
+                    printf("\nChiusura in corso...\n");
+                    break;
+                }
             }
-        } else {
-            // Scrittura (eventuale estensione futura)
-            if (!fgets(buf, sizeof(buf), stdin)) break;
-            size_t len = strlen(buf);
-            if (len > 0 && buf[len - 1] != '\n') {
-                buf[len] = '\n';
-                buf[len + 1] = '\0';
-                len++;
+            // n==0: nessun dato (timeout VTIME), ignora
+            else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+                perror("read(serial)");
+                break;
             }
-            ssize_t wn = write(fd, buf, len);
+        }
+
+        // --- Da tastiera → seriale ---
+        if (FD_ISSET(STDIN_FILENO, &rfds)) {
+            char lbuf[512];
+            if (!fgets(lbuf, sizeof(lbuf), stdin)) {
+                // EOF su stdin
+                break;
+            }
+
+            // rimuovi \n e/o \r finali
+            size_t L = strlen(lbuf);
+            while (L > 0 && (lbuf[L-1] == '\n' || lbuf[L-1] == '\r')) {
+                lbuf[--L] = '\0';
+            }
+
+            // aggiungi sempre CR per soddisfare UART_getString()
+            if (L < sizeof(lbuf) - 1) {
+                lbuf[L++] = '\r';
+                lbuf[L]   = '\0';
+            }
+
+            ssize_t wn = write(fd, lbuf, L);
             if (wn < 0) {
-                perror("write");
+                perror("write(serial)");
+                break;
             }
         }
     }
@@ -178,5 +185,7 @@ int main(int argc, char **argv) {
     printf("\nConnessione chiusa.\n");
     return 0;
 }
+
+
 
 
