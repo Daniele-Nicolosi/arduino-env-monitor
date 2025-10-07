@@ -90,9 +90,9 @@ void oled_show_sensor(const char* temp, const char* press, const char* hum) {
 
 void oled_show_sensors(const char *temp, const char *press, const char *hum) {
     oled_clear();
-    oled_print_line(1, temp ? temp : "Temperature:"); 
-    oled_print_line(3, press ? press : "Pressure:");
-    oled_print_line(5, hum ? hum : "Humidity:");
+    oled_print_line(1, temp); 
+    oled_print_line(3, press);
+    oled_print_line(5, hum);
 }
 
 
