@@ -1,4 +1,5 @@
 #pragma once
+
 #include <stdint.h>
 
 /* ------------------------------------------------------------
@@ -16,10 +17,14 @@ typedef enum {
 } press_unit_t;
 
 /* ------------------------------------------------------------
-   API del proxy
+   Inizializza UART, I2C, sensore, OLED e pulsanti
 ------------------------------------------------------------ */
-void proxy_init(void);  // Inizializza UART, I2C, sensore, OLED e pulsanti
-void proxy_run(void);   // Avvia il menù interattivo gestito dai pulsanti
+void proxy_init(void);  
+
+/* ------------------------------------------------------------
+    Avvia il menù interattivo gestito dai pulsanti
+------------------------------------------------------------ */
+void proxy_run(void);   
 
 
 

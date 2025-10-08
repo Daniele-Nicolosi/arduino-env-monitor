@@ -152,7 +152,9 @@ static void proxy_configure(void) {
 
 /* ------------------------------------------------------------
    proxy_init()
-   Inizializza UART, I2C, sensore, OLED e pulsanti
+   - Inizializza UART, I2C, sensore, OLED e pulsanti 
+   - Include la fase di configurazione utente
+   - Mostra messaggio di benvenuto sul display
 ------------------------------------------------------------ */
 void proxy_init(void) {
     UART_init(UART_MYUBRR);
@@ -168,6 +170,10 @@ void proxy_init(void) {
     last_temp  = bme280_read_temperature();
     last_press = bme280_read_pressure();
     last_hum   = bme280_read_humidity();
+
+    oled_clear();
+    oled_print_line(3, "       WELCOME!");
+    _delay_ms(2000);
 }
 
 /* ------------------------------------------------------------

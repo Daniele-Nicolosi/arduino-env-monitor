@@ -1,15 +1,21 @@
-#include <avr/io.h>
-#include <util/delay.h>
 #include "proxy/proxy.h"
-#include "display/oled.h"
 
+/* ------------------------------------------------------------
+   main()
+   Punto d’ingresso del programma.
+   - Inizializza il proxy (UART, I2C, sensore, display, pulsanti)
+   - Avvia il menù interattivo controllato da pulsanti
+------------------------------------------------------------ */
 int main(void) {
+
+    /* --------------------------------------------------------
+       Inizializzazione del sistema e configurazione utente
+    -------------------------------------------------------- */
     proxy_init();
 
-    oled_clear();
-    oled_print_line(3, "       WELCOME!");
-    _delay_ms(2000);
-
+    /* --------------------------------------------------------
+       Avvio del ciclo principale (menù interattivo)
+    -------------------------------------------------------- */
     proxy_run();
 
     return 0;

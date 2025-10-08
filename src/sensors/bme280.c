@@ -1,8 +1,10 @@
 #include "../../avr_common/i2c/i2c.h"
 #include "bme280.h"
 
-
-// ---- Coefficienti di calibrazione ----
+/* ------------------------------------------------------------
+   Coefficienti di calibrazione interni
+   (letti una sola volta da memoria non volatile del BME280)
+------------------------------------------------------------ */
 static uint16_t dig_T1;
 static int16_t  dig_T2, dig_T3;
 
@@ -15,9 +17,11 @@ static uint8_t  dig_H3;
 static int16_t  dig_H4, dig_H5;
 static int8_t   dig_H6;
 
-static int32_t t_fine;
+static int32_t t_fine;   // variabile di calibrazione temperatura
 
-// ---- Funzioni di supporto ----
+/* ------------------------------------------------------------
+   Funzioni di supporto (lettura registri via I2C)
+------------------------------------------------------------ */
 static uint16_t bme280_read16(uint8_t reg) {
     uint8_t buf[2];
     i2c_read_regs(BME280_ADDR, reg, buf, 2);
@@ -46,13 +50,20 @@ static int32_t bme280_read_raw_hum(void) {
     return ((int32_t)buf[0] << 8) | buf[1];
 }
 
-// ---- Init ----
+/* ------------------------------------------------------------
+   bme280_init()
+   Legge i coefficienti di calibrazione e configura il sensore:
+   - Oversampling x1 per temperatura, pressione e umidità
+   - Modalità "normal"
+   - Imposta i registri di configurazione base
+------------------------------------------------------------ */
 void bme280_init(void) {
-    // Coefficienti calibrazione
+    // ---- Coefficienti calibrazione temperatura ----
     dig_T1 = bme280_read16(0x88);
     dig_T2 = bme280_readS16(0x8A);
     dig_T3 = bme280_readS16(0x8C);
 
+    // ---- Coefficienti calibrazione pressione ----
     dig_P1 = bme280_read16(0x8E);
     dig_P2 = bme280_readS16(0x90);
     dig_P3 = bme280_readS16(0x92);
@@ -63,6 +74,7 @@ void bme280_init(void) {
     dig_P8 = bme280_readS16(0x9C);
     dig_P9 = bme280_readS16(0x9E);
 
+    // ---- Coefficienti calibrazione umidità ----
     {
         uint8_t tmp;
         i2c_read_reg(BME280_ADDR, 0xA1, &tmp);
@@ -92,13 +104,18 @@ void bme280_init(void) {
         dig_H6 = (int8_t)tmp;
     }
 
-    // Configurazione sensore
-    i2c_write_reg(BME280_ADDR, 0xF2, 0x01);   // ctrl_hum (oversampling x1)
-    i2c_write_reg(BME280_ADDR, 0xF4, 0x27);   // ctrl_meas (temp+press oversampling x1, normal mode)
-    i2c_write_reg(BME280_ADDR, 0xF5, 0xA0);   // config
+    // ---- Configurazione sensore ----
+    i2c_write_reg(BME280_ADDR, 0xF2, 0x01);   // ctrl_hum: oversampling x1
+    i2c_write_reg(BME280_ADDR, 0xF4, 0x27);   // ctrl_meas: temp+press x1, normal mode
+    i2c_write_reg(BME280_ADDR, 0xF5, 0xA0);   // config: standby 1000ms
 }
 
-// ---- Conversioni ----
+/* ------------------------------------------------------------
+   bme280_read_temperature()
+   Legge la temperatura compensata in °C
+   - Usa le formule Bosch originali con i coefficienti letti
+   - Aggiorna la variabile t_fine (usata anche per P e H)
+------------------------------------------------------------ */
 float bme280_read_temperature(void) {
     int32_t adc_T = bme280_read_raw_temp();
     int32_t var1, var2;
@@ -110,6 +127,12 @@ float bme280_read_temperature(void) {
     return ((t_fine * 5 + 128) >> 8) / 100.0f;
 }
 
+/* ------------------------------------------------------------
+   bme280_read_pressure()
+   Legge la pressione compensata in hPa
+   - Richiede t_fine calcolato in precedenza
+   - Esegue la formula di compensazione intera a 64 bit
+------------------------------------------------------------ */
 float bme280_read_pressure(void) {
     int32_t adc_P = bme280_read_raw_press();
     int64_t var1, var2, p;
@@ -119,15 +142,21 @@ float bme280_read_pressure(void) {
     var2 = var2 + (((int64_t)dig_P4) << 35);
     var1 = ((var1 * var1 * (int64_t)dig_P3) >> 8) + ((var1 * (int64_t)dig_P2) << 12);
     var1 = (((((int64_t)1) << 47) + var1) * (int64_t)dig_P1) >> 33;
-    if (var1 == 0) return 0.0f;
+    if (var1 == 0) return 0.0f;  // protezione da divisione per zero
     p = 1048576 - adc_P;
     p = (((p << 31) - var2) * 3125) / var1;
     var1 = (((int64_t)dig_P9) * (p >> 13) * (p >> 13)) >> 25;
     var2 = (((int64_t)dig_P8) * p) >> 19;
     p = ((p + var1 + var2) >> 8) + (((int64_t)dig_P7) << 4);
-    return (float)p / 25600.0f;  // in hPa
+    return (float)p / 25600.0f;  // hPa
 }
 
+/* ------------------------------------------------------------
+   bme280_read_humidity()
+   Legge l’umidità relativa compensata in %RH
+   - Richiede t_fine calcolato dalla temperatura
+   - Applica compensazione secondo datasheet Bosch
+------------------------------------------------------------ */
 float bme280_read_humidity(void) {
     int32_t adc_H = bme280_read_raw_hum();
     int32_t v_x1_u32r;
@@ -144,6 +173,7 @@ float bme280_read_humidity(void) {
     if (v_x1_u32r > 419430400) v_x1_u32r = 419430400;
     return (v_x1_u32r >> 12) / 1024.0f;
 }
+
 
 
 

@@ -10,6 +10,9 @@ CFLAGS = -Wall -O2
 # File oggetto
 OBJS = client.o
 
+#File header
+HEADERS = client.h
+
 # ------------------------------------------------------------
 #  Target predefinito: compila il client
 # ------------------------------------------------------------
@@ -18,7 +21,7 @@ all: client
 # ------------------------------------------------------------
 #  Regola per creare l’eseguibile
 # ------------------------------------------------------------
-client: $(OBJS)
+client: $(OBJS) $(HEADERS)
 	$(CC) $(CFLAGS) -o client $(OBJS)
 
 # ------------------------------------------------------------

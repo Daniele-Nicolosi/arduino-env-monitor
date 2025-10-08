@@ -13,7 +13,6 @@ all: firmware client
 
 # ------------------------------------------------------------
 #  Compilazione del firmware per Arduino
-#  (viene gestita dal Makefile interno a src/)
 # ------------------------------------------------------------
 firmware:
 	@echo "🔧 Compilazione firmware Arduino..."
@@ -21,7 +20,6 @@ firmware:
 
 # ------------------------------------------------------------
 #  Compilazione del client per PC
-#  (viene gestita dal Makefile interno a client/)
 # ------------------------------------------------------------
 client:
 	@echo "💻 Compilazione client PC..."

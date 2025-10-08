@@ -1,8 +1,9 @@
-#include "oled.h"
-#include "font/font.h"
-#include "../../avr_common/i2c/i2c.h"
 #include <util/delay.h>
 #include <string.h>
+
+#include "../../avr_common/i2c/i2c.h"
+#include "font/font.h"
+#include "oled.h"
 
 /* ------------------------------------------------------------
    Funzioni interne (comandi e dati I2C)

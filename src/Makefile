@@ -1,5 +1,5 @@
 # ------------------------------------------------------------
-#  Makefile per il firmware Arduino (cartella src)
+#  Makefile per il firmware Arduino 
 #  Usa il file comune ../avr_common/avr.mk
 # ------------------------------------------------------------
 
@@ -18,7 +18,7 @@ OBJS = proxy/proxy.o \
        buttons/buttons.o
 
 # ------------------------------------------------------------
-#  Header (opzionali, per chiarezza e dipendenze)
+#  Header 
 # ------------------------------------------------------------
 HEADERS = proxy/proxy.h \
           ../avr_common/uart/uart.h \

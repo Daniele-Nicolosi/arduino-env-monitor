@@ -2,14 +2,30 @@
 
 #include <stdint.h>
 
+/* ------------------------------------------------------------
+   Indirizzo I2C del sensore BME280
+------------------------------------------------------------ */
 #define BME280_ADDR 0x76
 
-// Inizializza il BME280 (calibrazione + settaggi base)
+/* ------------------------------------------------------------
+   bme280_init()
+   Inizializza il sensore:
+   - Legge i coefficienti di calibrazione interni
+   - Configura oversampling e modalità normale
+------------------------------------------------------------ */
 void bme280_init(void);
 
-// Letture in floating point già convertite
-float bme280_read_temperature(void);  // °C
-float bme280_read_pressure(void);     // hPa
-float bme280_read_humidity(void);     // %RH
+/* ------------------------------------------------------------
+   Letture dei parametri ambientali 
+   Restituiscono valori già compensati tramite formule Bosch.
+   Unità:
+   - Temperatura: °C
+   - Pressione:   hPa
+   - Umidità:     %RH
+------------------------------------------------------------ */
+float bme280_read_temperature(void);
+float bme280_read_pressure(void);
+float bme280_read_humidity(void);
+
 
 
