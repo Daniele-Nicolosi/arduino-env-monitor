@@ -60,7 +60,7 @@ void UART_putString(const char *s) {
 
 /* ------------------------------------------------------------
    UART_getString()
-   Legge una riga con terminatore '\r' o '\n', con echo e backspace
+   Legge una riga con terminatore '\r' o '\n'
 ------------------------------------------------------------ */
 int UART_getString(char *buf, int maxlen) {
     int i = 0;
@@ -70,16 +70,9 @@ int UART_getString(char *buf, int maxlen) {
         if (c == '\r' || c == '\n') {
             break;
         }
-        if ((c == 8 || c == 127) && i > 0) { // backspace
-            i--;
-            continue;
-        }
         buf[i++] = c;
-        UART_putChar(c); // echo
     }
     buf[i] = '\0';
-    UART_putChar('\r');
-    UART_putChar('\n');
     return i;
 }
 
