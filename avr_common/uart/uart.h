@@ -13,7 +13,7 @@
 #define UART_MYUBRR (F_CPU / 16 / UART_BAUD - 1)
 
 /* ------------------------------------------------------------
-   API UART (interrupt-driven)
+   API UART 
 ------------------------------------------------------------ */
 void UART_init(uint16_t ubrr);
 void UART_putChar(char data);

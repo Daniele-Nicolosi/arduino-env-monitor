@@ -1,8 +1,7 @@
 #include "uart.h"
 
 /* ------------------------------------------------------------
-   Buffer circolari (privati del modulo UART)
-   Queste variabili sono static, quindi visibili solo in questo file.
+   Buffer circolari 
 ------------------------------------------------------------ */
 static volatile uint8_t rx_buf[UART_RX_BUF_SIZE];
 static volatile uint8_t rx_head = 0, rx_tail = 0;
@@ -12,7 +11,7 @@ static volatile uint8_t tx_head = 0, tx_tail = 0;
 
 /* ------------------------------------------------------------
    UART_init()
-   Configura la UART: 19200 baud, 8N1, interrupt RX abilitato
+   Configura la UART: 19200 baud, 8N1
 ------------------------------------------------------------ */
 void UART_init(uint16_t ubrr) {
     UBRR0H = (uint8_t)(ubrr >> 8);

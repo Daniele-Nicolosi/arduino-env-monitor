@@ -4,19 +4,21 @@
 #include <util/delay.h>
 #include <string.h>
 
-// --- Costanti ---
-#define OLED_ADDR 0x3C   // indirizzo tipico SH1106
-
-// --- Funzioni interne ---
+/* ------------------------------------------------------------
+   Funzioni interne (comandi e dati I2C)
+------------------------------------------------------------ */
 static void oled_command(uint8_t cmd) {
-    i2c_write_reg(OLED_ADDR, 0x00, cmd);   // 0x00 = modalità comando
+    i2c_write_reg(OLED_ADDR, 0x00, cmd); // invia comando
 }
 
 static void oled_data(uint8_t data) {
-    i2c_write_reg(OLED_ADDR, 0x40, data);  // 0x40 = modalità dati
+    i2c_write_reg(OLED_ADDR, 0x40, data); // invia dato
 }
 
-// --- Init ---
+/* ------------------------------------------------------------
+   oled_init()
+   Inizializza il display SH1106
+------------------------------------------------------------ */
 void oled_init(void) {
     _delay_ms(100);
 
@@ -25,7 +27,7 @@ void oled_init(void) {
     oled_command(0xA8); oled_command(0x3F);
     oled_command(0xD3); oled_command(0x00);
     oled_command(0x40);
-    oled_command(0xAD); oled_command(0x8B); // charge pump
+    oled_command(0xAD); oled_command(0x8B); 
     oled_command(0xA1); 
     oled_command(0xC8);
     oled_command(0xDA); oled_command(0x12);
@@ -34,66 +36,68 @@ void oled_init(void) {
     oled_command(0xDB); oled_command(0x35);
     oled_command(0xA4);
     oled_command(0xA6);
-    oled_command(0xAF); // display ON
+    oled_command(0xAF); // display on
 
     oled_clear();
 }
 
-// --- Clear ---
+/* ------------------------------------------------------------
+   oled_clear()
+   Pulisce lo schermo (8 pagine × 128 colonne)
+------------------------------------------------------------ */
 void oled_clear(void) {
     for (uint8_t page = 0; page < 8; page++) {
-        oled_command(0xB0 + page); // pagina (0–7)
-        oled_command(0x02);        // colonna low (SH1106 usa offset 2)
-        oled_command(0x10);        // colonna high
+        oled_command(0xB0 + page);
+        oled_command(0x02);
+        oled_command(0x10);
         for (uint8_t col = 0; col < 128; col++) {
             oled_data(0x00);
         }
     }
 }
 
-// --- Print line ---
+/* ------------------------------------------------------------
+   oled_print_line()
+   Scrive testo su una riga (pagina 0–7)
+------------------------------------------------------------ */
 void oled_print_line(uint8_t line, const char *text) {
     if (line > 7) return;
 
-    oled_command(0xB0 + line); // seleziona pagina
-    oled_command(0x02);        // colonna low
-    oled_command(0x10);        // colonna high
+    oled_command(0xB0 + line);
+    oled_command(0x02);
+    oled_command(0x10);
 
     while (*text) {
         char c = *text++;
-        if (c < 32 || c > 126) c = '?'; // caratteri non supportati
+        if (c < 32 || c > 126) c = '?';
         const uint8_t *glyph = &oled_font5x7[(c - 32) * 5];
-        for (uint8_t i = 0; i < 5; i++) {
-            oled_data(glyph[i]);
-        }
-        oled_data(0x00); // spazio tra caratteri
+        for (uint8_t i = 0; i < 5; i++) oled_data(glyph[i]);
+        oled_data(0x00);
     }
 }
 
-
+/* ------------------------------------------------------------
+   oled_show_sensor()
+   Mostra un solo valore (temp, press o hum)
+------------------------------------------------------------ */
 void oled_show_sensor(const char* temp, const char* press, const char* hum) {
     oled_clear();
-    if (temp)  {
-        oled_print_line(3, temp);
-        return;
-    }
-    if (press) {
-        oled_print_line(3, press);
-        return;
-    }
-    if (hum)   {
-        oled_print_line(3, hum);
-        return;
-    }
+    if (temp)  { oled_print_line(3, temp);  return; }
+    if (press) { oled_print_line(3, press); return; }
+    if (hum)   { oled_print_line(3, hum);   return; }
 }
 
-
+/* ------------------------------------------------------------
+   oled_show_sensors()
+   Mostra tre valori su linee 1, 3 e 5
+------------------------------------------------------------ */
 void oled_show_sensors(const char *temp, const char *press, const char *hum) {
     oled_clear();
     oled_print_line(1, temp); 
     oled_print_line(3, press);
     oled_print_line(5, hum);
 }
+
 
 
 

@@ -5,7 +5,6 @@
 
 /* ------------------------------------------------------------
    Definizione pin dei pulsanti
-   (puoi adattarli a dove li collegherai realmente)
 ------------------------------------------------------------ */
 #define BTN_SELECT_PIN PD2   // Pulsante per scorrere i parametri
 #define BTN_CONFIRM_PIN PD3  // Pulsante per confermare la scelta
@@ -16,7 +15,7 @@
 void buttons_init(void);
 
 /* ------------------------------------------------------------
-   Legge lo stato dei pulsanti (con debounce software)
+   Legge lo stato dei pulsanti 
    Ritorna:
      1 se BTN_SELECT premuto
      2 se BTN_CONFIRM premuto
