@@ -1,4 +1,4 @@
-# Arduino Env Monitor
+# Arduino Environmental Monitor
 
 Sistema di monitoraggio ambientale basato su **Arduino Mega 2560**, che utilizza il sensore **BME280** per la rilevazione di temperatura, pressione e umidità, e un display **OLED 128×64 basato su controller SH1106** per la visualizzazione dei dati.  
 La comunicazione tra i dispositivi avviene tramite **I²C**, mentre la connessione con il PC per la configurazione e il logging avviene tramite **UART**.
@@ -48,7 +48,7 @@ Nota: il caricamento su Arduino avviene tramite `avrdude` con le impostazioni gi
 
 ---
 
-## 💻 Avvio del client seriale
+### 💻 Avvio del client seriale
 
 Avviare il client interattivo con:
 
@@ -69,7 +69,7 @@ Per terminare il client dal terminale, premere **Ctrl + C**.
 
 ---
 
-## 🧹 Pulizia dei file generati
+### 🧹 Pulizia dei file generati
 
 Per rimuovere i file temporanei di compilazione (file `.o`, eseguibili generati, `.hex`, ecc.):
 
