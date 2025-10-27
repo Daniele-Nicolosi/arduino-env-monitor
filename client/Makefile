@@ -1,6 +1,5 @@
 # ------------------------------------------------------------
 #  Makefile per il client PC
-#  Compila il programma che comunica con Arduino
 # ------------------------------------------------------------
 
 # Compilatore e flag

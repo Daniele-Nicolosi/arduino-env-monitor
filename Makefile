@@ -1,5 +1,5 @@
 # ------------------------------------------------------------
-#  Makefile principale del progetto Arduino I2C Proxy
+#  Makefile principale del progetto Arduino Env Monitor
 #  Gestisce la compilazione del firmware (Arduino)
 #  e del client (programma PC)
 # ------------------------------------------------------------

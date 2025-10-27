@@ -1,6 +1,5 @@
 # ------------------------------------------------------------
 #  Makefile per il firmware Arduino 
-#  Usa il file comune ../avr_common/avr.mk
 # ------------------------------------------------------------
 
 # Nome del file eseguibile per Arduino

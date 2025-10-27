@@ -72,9 +72,9 @@ static void format_hum(char *out, size_t n) {
 ------------------------------------------------------------ */
 static void proxy_intro(void) {
     UART_putString("\r\n\r\n=============================== PROJECT OVERVIEW ===============================\r\n");
-    UART_putString("This project implements an I2C proxy with the following:\r\n");
-    UART_putString("- A BME280 sensor for temperature, pressure, and humidity\r\n");
-    UART_putString("- An OLED display to show live readings\r\n");
+    UART_putString("This project implements an Arduino-based Environmental Monitor featuring:\r\n");
+    UART_putString("- A BME280 sensor for temperature, pressure, and humidity measurements\r\n");
+    UART_putString("- An OLED display for real-time data visualization\r\n");
     UART_putString("- Two buttons for user interaction:\r\n");
     UART_putString("    * LEFT  button: scroll through menu\r\n");
     UART_putString("    * RIGHT button: confirm selection\r\n");
