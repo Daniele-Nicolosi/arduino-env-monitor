@@ -35,9 +35,9 @@ All’avvio, il firmware:
 
 Dalla directory principale del progetto eseguire:
 
-'''bash
+```bash
 make
-'''
+```
 
 Questo comando:
 - Compila il firmware Arduino   
@@ -52,9 +52,9 @@ Nota: il caricamento su Arduino avviene tramite `avrdude` con le impostazioni gi
 
 Avviare il client interattivo con:
 
-'''bash
+```bash
 ./client/client /dev/ttyACM0 19200
-'''
+```
 
 Dove:
 - `/dev/ttyACM0` è la porta seriale esposta da Arduino  
@@ -73,9 +73,9 @@ Per terminare il client dal terminale, premere **Ctrl + C**.
 
 Per rimuovere i file temporanei di compilazione (file `.o`, eseguibili generati, `.hex`, ecc.):
 
-'''bash
+```bash
 make clean
-'''
+```
 
 Questo comando esegue la pulizia sia per il firmware (`src/`) sia per il client (`client/`).
 
