@@ -70,7 +70,7 @@ static void format_hum(char *out, size_t n) {
 /* ------------------------------------------------------------
    Mostra un’introduzione del progetto sul terminale
 ------------------------------------------------------------ */
-static void proxy_intro(void) {
+static void PROXY_intro(void) {
     UART_putString("\r\n\r\n=============================== PROJECT OVERVIEW ===============================\r\n");
     UART_putString("This project implements an Arduino-based Environmental Monitor featuring:\r\n");
     UART_putString("- A BME280 sensor for temperature, pressure, and humidity measurements\r\n");
@@ -83,26 +83,26 @@ static void proxy_intro(void) {
 }
 
 /* ------------------------------------------------------------
-   proxy_configure()
+   PROXY_configure()
    Gestisce la configurazione 
 ------------------------------------------------------------ */
-static void proxy_configure(void) {
+static void PROXY_configure(void) {
     char buf[32];
     UART_putString("\r\n\r\n================================ CONFIGURATION =================================\r\n");
-    UART_putString("Select sampling rate (1-5):\r\n");
-    UART_putString("1) 250 ms\r\n2) 500 ms\r\n3) 1000 ms\r\n4) 2000 ms\r\n5) 5000 ms\r\n> ");
+    UART_putString("Select sampling rate (1-4):\r\n");
+    UART_putString("1) 125 ms\r\n2) 250 ms\r\n3) 500 ms\r\n4) 1000 ms\r\n> ");
 
     while (1) {
         UART_getString(buf, sizeof(buf));
         int opt = atoi(buf);
         if (opt >= 1 && opt <= 5) {
             switch (opt) {
-                case 1: sampling_ms = 250; break;
-                case 2: sampling_ms = 500; break;
-                case 3: sampling_ms = 1000; break;
-                case 4: sampling_ms = 2000; break;
-                case 5: sampling_ms = 5000; break;
+                case 1: sampling_ms = 125; break;
+                case 2: sampling_ms = 250; break;
+                case 3: sampling_ms = 500; break;
+                case 4: sampling_ms = 1000; break;
             }
+            BME280_set_sampling(sampling_ms);
             break;
         }
         UART_putString("Invalid value. Enter a number from 1 to 5: ");
@@ -147,32 +147,27 @@ static void proxy_configure(void) {
     UART_putString(conf);
     UART_putString("Configuration complete!\r\n");
 
-    proxy_intro();
+    PROXY_intro();
 }
 
 /* ------------------------------------------------------------
-   proxy_init()
-   - Inizializza UART, I2C, sensore, OLED e pulsanti 
+   PROXY_init()
+   - Inizializza UART, I2C, BME280, OLED e pulsanti 
    - Include la fase di configurazione utente
    - Mostra messaggio di benvenuto sul display
 ------------------------------------------------------------ */
-void proxy_init(void) {
+void PROXY_init(void) {
     UART_init(UART_MYUBRR);
-    i2c_init();
-    bme280_init();
+    I2C_init();
+    BME280_init();
 
-    proxy_configure();  // fase di setup interattivo
+    PROXY_configure();  // fase di setup interattivo
 
-    oled_init();
-    buttons_init();
+    OLED_init();
+    BUTTONS_init();
 
-    // prime letture
-    last_temp  = bme280_read_temperature();
-    last_press = bme280_read_pressure();
-    last_hum   = bme280_read_humidity();
-
-    oled_clear();
-    oled_print_line(3, "       WELCOME!");
+    OLED_clear();
+    OLED_print_line(3, "       WELCOME!");
     _delay_ms(2000);
 }
 
@@ -181,13 +176,13 @@ void proxy_init(void) {
    Mostra il menù principale sul display
 ------------------------------------------------------------ */
 static void show_menu(uint8_t sel) {
-    oled_clear();
-    oled_print_line(0, "SELECT PARAMETER:");
-    oled_print_line(2, (sel == 0) ? "--> Temperature" : "    Temperature");
-    oled_print_line(3, (sel == 1) ? "--> Pressure"    : "    Pressure");
-    oled_print_line(4, (sel == 2) ? "--> Humidity"    : "    Humidity");
-    oled_print_line(5, (sel == 3) ? "--> All"         : "    All");
-    oled_print_line(6, (sel == 4) ? "--> Exit"        : "    Exit");
+    OLED_clear();
+    OLED_print_line(0, "SELECT PARAMETER:");
+    OLED_print_line(2, (sel == 0) ? "--> Temperature" : "    Temperature");
+    OLED_print_line(3, (sel == 1) ? "--> Pressure"    : "    Pressure");
+    OLED_print_line(4, (sel == 2) ? "--> Humidity"    : "    Humidity");
+    OLED_print_line(5, (sel == 3) ? "--> All"         : "    All");
+    OLED_print_line(6, (sel == 4) ? "--> Exit"        : "    Exit");
 }
 
 /* ------------------------------------------------------------
@@ -201,7 +196,7 @@ static void show_value(uint8_t sel) {
     format_hum(hbuf, sizeof(hbuf));
 
     if (sel == 3) {
-        oled_show_sensors(tbuf, pbuf, hbuf);
+        OLED_show_sensors(tbuf, pbuf, hbuf);
         if (log_enabled) {
             UART_putString(tbuf); UART_putString("\r\n");
             UART_putString(pbuf); UART_putString("\r\n");
@@ -212,7 +207,7 @@ static void show_value(uint8_t sel) {
         if (sel == 0) msg = tbuf;
         else if (sel == 1) msg = pbuf;
         else if (sel == 2) msg = hbuf;
-        oled_show_sensor((sel == 0) ? tbuf : NULL,
+        OLED_show_sensor((sel == 0) ? tbuf : NULL,
                          (sel == 1) ? pbuf : NULL,
                          (sel == 2) ? hbuf : NULL);
         if (log_enabled && msg) {
@@ -223,25 +218,22 @@ static void show_value(uint8_t sel) {
 }
 
 /* ------------------------------------------------------------
-   proxy_run()
+   PROXY_run()
    Ciclo principale con gestione menù e pulsanti
 ------------------------------------------------------------ */
-void proxy_run(void) {
+void PROXY_run(void) {
     uint8_t sel = 0;
     uint8_t in_menu = 1;
-    uint16_t elapsed = 0;
 
     show_menu(sel);
 
     while (1) {
-        if (elapsed >= sampling_ms) {
-            last_temp  = bme280_read_temperature();
-            last_press = bme280_read_pressure();
-            last_hum   = bme280_read_humidity();
-            elapsed = 0;
-        }
+        
+        last_temp  = BME280_read_temperature();
+        last_press = BME280_read_pressure();
+        last_hum   = BME280_read_humidity();
 
-        uint8_t btn = buttons_read();
+        uint8_t btn = BUTTONS_read();
 
         if (in_menu) {
             if (btn == 1) {
@@ -249,11 +241,12 @@ void proxy_run(void) {
                 show_menu(sel);
             } else if (btn == 2) {
                 if (sel == 4) {
+                    UART_putString("================================================================================\r\n\r\n");
                     UART_putString("\r\nExiting...\r\n");
-                    oled_clear();
-                    oled_print_line(3, "     GOODBYE! :)");
+                    OLED_clear();
+                    OLED_print_line(3, "     GOODBYE! :)");
                     _delay_ms(2000);
-                    oled_clear();
+                    OLED_clear();
                     UART_putString("Exit complete. Goodbye! :)\r\n");
                     _delay_ms(100);
                     return;
@@ -270,9 +263,9 @@ void proxy_run(void) {
         }
 
         _delay_ms(10);
-        elapsed += 10;
     }
 }
+
 
 
 

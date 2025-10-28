@@ -13,7 +13,7 @@
 /* ------------------------------------------------------------
    Inizializzazione dei pulsanti
 ------------------------------------------------------------ */
-void buttons_init(void);
+void BUTTONS_init(void);
 
 /* ------------------------------------------------------------
    Legge lo stato dei pulsanti 
@@ -22,5 +22,5 @@ void buttons_init(void);
      2 se BTN_CONFIRM premuto
      0 se nessuno
 ------------------------------------------------------------ */
-uint8_t buttons_read(void);
+uint8_t BUTTONS_read(void);
 

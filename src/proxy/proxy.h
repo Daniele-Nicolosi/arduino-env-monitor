@@ -19,12 +19,12 @@ typedef enum {
 /* ------------------------------------------------------------
    Inizializza UART, I2C, sensore, OLED e pulsanti
 ------------------------------------------------------------ */
-void proxy_init(void);  
+void PROXY_init(void);  
 
 /* ------------------------------------------------------------
     Avvia il menù interattivo gestito dai pulsanti
 ------------------------------------------------------------ */
-void proxy_run(void);   
+void PROXY_run(void);   
 
 
 

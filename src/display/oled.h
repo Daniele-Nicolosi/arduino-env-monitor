@@ -10,19 +10,20 @@
 /* ------------------------------------------------------------
    Inizializzazione e controllo base
 ------------------------------------------------------------ */
-void oled_init(void);
-void oled_clear(void);
+void OLED_init(void);
+void OLED_clear(void);
 
 /* ------------------------------------------------------------
    Stampa testo su riga (0–7)
 ------------------------------------------------------------ */
-void oled_print_line(uint8_t line, const char *text);
+void OLED_print_line(uint8_t line, const char *text);
 
 /* ------------------------------------------------------------
    Visualizzazione valore sensori
 ------------------------------------------------------------ */
-void oled_show_sensor(const char* temp, const char* press, const char* hum);
-void oled_show_sensors(const char *temp, const char *press, const char *hum);
+void OLED_show_sensor(const char* temp, const char* press, const char* hum);
+void OLED_show_sensors(const char *temp, const char *press, const char *hum);
+
 
 
 

@@ -8,96 +8,98 @@
 /* ------------------------------------------------------------
    Funzioni interne (comandi e dati I2C)
 ------------------------------------------------------------ */
-static void oled_command(uint8_t cmd) {
-    i2c_write_reg(OLED_ADDR, 0x00, cmd); // invia comando
+static void OLED_command(uint8_t cmd) {
+    I2C_write_reg(OLED_ADDR, 0x00, cmd); // invia comando
 }
 
-static void oled_data(uint8_t data) {
-    i2c_write_reg(OLED_ADDR, 0x40, data); // invia dato
+static void OLED_data(uint8_t data) {
+    I2C_write_reg(OLED_ADDR, 0x40, data); // invia dato
 }
 
 /* ------------------------------------------------------------
-   oled_init()
+   OLED_init()
    Inizializza il display SH1106
+   Configurazione base 128x64, I2C
 ------------------------------------------------------------ */
-void oled_init(void) {
+void OLED_init(void) {
     _delay_ms(100);
 
-    oled_command(0xAE); // display off
-    oled_command(0xD5); oled_command(0x80);
-    oled_command(0xA8); oled_command(0x3F);
-    oled_command(0xD3); oled_command(0x00);
-    oled_command(0x40);
-    oled_command(0xAD); oled_command(0x8B); 
-    oled_command(0xA1); 
-    oled_command(0xC8);
-    oled_command(0xDA); oled_command(0x12);
-    oled_command(0x81); oled_command(0x80);
-    oled_command(0xD9); oled_command(0x22);
-    oled_command(0xDB); oled_command(0x35);
-    oled_command(0xA4);
-    oled_command(0xA6);
-    oled_command(0xAF); // display on
+    OLED_command(0xAE); // display off
+    OLED_command(0xD5); OLED_command(0x80);
+    OLED_command(0xA8); OLED_command(0x3F);
+    OLED_command(0xD3); OLED_command(0x00);
+    OLED_command(0x40);
+    OLED_command(0xAD); OLED_command(0x8B); 
+    OLED_command(0xA1); 
+    OLED_command(0xC8);
+    OLED_command(0xDA); OLED_command(0x12);
+    OLED_command(0x81); OLED_command(0x80);
+    OLED_command(0xD9); OLED_command(0x22);
+    OLED_command(0xDB); OLED_command(0x35);
+    OLED_command(0xA4);
+    OLED_command(0xA6);
+    OLED_command(0xAF); // display on
 
-    oled_clear();
+    OLED_clear();
 }
 
 /* ------------------------------------------------------------
-   oled_clear()
+   OLED_clear()
    Pulisce lo schermo (8 pagine × 128 colonne)
 ------------------------------------------------------------ */
-void oled_clear(void) {
+void OLED_clear(void) {
     for (uint8_t page = 0; page < 8; page++) {
-        oled_command(0xB0 + page);
-        oled_command(0x02);
-        oled_command(0x10);
+        OLED_command(0xB0 + page);
+        OLED_command(0x02);
+        OLED_command(0x10);
         for (uint8_t col = 0; col < 128; col++) {
-            oled_data(0x00);
+            OLED_data(0x00);
         }
     }
 }
 
 /* ------------------------------------------------------------
-   oled_print_line()
+   OLED_print_line()
    Scrive testo su una riga (pagina 0–7)
 ------------------------------------------------------------ */
-void oled_print_line(uint8_t line, const char *text) {
+void OLED_print_line(uint8_t line, const char *text) {
     if (line > 7) return;
 
-    oled_command(0xB0 + line);
-    oled_command(0x02);
-    oled_command(0x10);
+    OLED_command(0xB0 + line);
+    OLED_command(0x02);
+    OLED_command(0x10);
 
     while (*text) {
         char c = *text++;
         if (c < 32 || c > 126) c = '?';
-        const uint8_t *glyph = &oled_font5x7[(c - 32) * 5];
-        for (uint8_t i = 0; i < 5; i++) oled_data(glyph[i]);
-        oled_data(0x00);
+        const uint8_t *glyph = &OLED_font5x7[(c - 32) * 5];
+        for (uint8_t i = 0; i < 5; i++) OLED_data(glyph[i]);
+        OLED_data(0x00);
     }
 }
 
 /* ------------------------------------------------------------
-   oled_show_sensor()
+   OLED_show_sensor()
    Mostra un solo valore (temp, press o hum)
 ------------------------------------------------------------ */
-void oled_show_sensor(const char* temp, const char* press, const char* hum) {
-    oled_clear();
-    if (temp)  { oled_print_line(3, temp);  return; }
-    if (press) { oled_print_line(3, press); return; }
-    if (hum)   { oled_print_line(3, hum);   return; }
+void OLED_show_sensor(const char* temp, const char* press, const char* hum) {
+    OLED_clear();
+    if (temp)  { OLED_print_line(3, temp);  return; }
+    if (press) { OLED_print_line(3, press); return; }
+    if (hum)   { OLED_print_line(3, hum);   return; }
 }
 
 /* ------------------------------------------------------------
-   oled_show_sensors()
+   OLED_show_sensors()
    Mostra tre valori su linee 1, 3 e 5
 ------------------------------------------------------------ */
-void oled_show_sensors(const char *temp, const char *press, const char *hum) {
-    oled_clear();
-    oled_print_line(1, temp); 
-    oled_print_line(3, press);
-    oled_print_line(5, hum);
+void OLED_show_sensors(const char *temp, const char *press, const char *hum) {
+    OLED_clear();
+    OLED_print_line(1, temp); 
+    OLED_print_line(3, press);
+    OLED_print_line(5, hum);
 }
+
 
 
 

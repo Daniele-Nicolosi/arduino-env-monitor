@@ -4,7 +4,7 @@
    Inizializzazione dei pin dei pulsanti
    - Usa INPUT_PULLUP → logica inversa (premuto = 0)
 ------------------------------------------------------------ */
-void buttons_init(void) {
+void BUTTONS_init(void) {
     DDRD &= ~((1 << BTN_SELECT_PIN) | (1 << BTN_CONFIRM_PIN)); // input
     PORTD |= (1 << BTN_SELECT_PIN) | (1 << BTN_CONFIRM_PIN);   // pull-up attivi
 }
@@ -16,7 +16,7 @@ void buttons_init(void) {
      2 = confirm
      0 = nessuno
 ------------------------------------------------------------ */
-uint8_t buttons_read(void) {
+uint8_t BUTTONS_read(void) {
     if (!(PIND & (1 << BTN_SELECT_PIN))) {
         _delay_ms(30); // debounce
         if (!(PIND & (1 << BTN_SELECT_PIN))) return 1;

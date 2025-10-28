@@ -8,12 +8,17 @@
 #define BME280_ADDR 0x76
 
 /* ------------------------------------------------------------
-   bme280_init()
+   BME280_init()
    Inizializza il sensore:
    - Legge i coefficienti di calibrazione interni
    - Configura oversampling e modalità normale
 ------------------------------------------------------------ */
-void bme280_init(void);
+void BME280_init(void);
+
+/* ------------------------------------------------------------
+   Imposta il tempo di standby (sampling rate interno)
+------------------------------------------------------------ */
+void BME280_set_sampling(uint16_t ms);
 
 /* ------------------------------------------------------------
    Letture dei parametri ambientali 
@@ -23,9 +28,10 @@ void bme280_init(void);
    - Pressione:   hPa
    - Umidità:     %RH
 ------------------------------------------------------------ */
-float bme280_read_temperature(void);
-float bme280_read_pressure(void);
-float bme280_read_humidity(void);
+float BME280_read_temperature(void);
+float BME280_read_pressure(void);
+float BME280_read_humidity(void);
+
 
 
 

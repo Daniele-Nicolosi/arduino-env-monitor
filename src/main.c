@@ -11,12 +11,12 @@ int main(void) {
     /* --------------------------------------------------------
        Inizializzazione del sistema e configurazione utente
     -------------------------------------------------------- */
-    proxy_init();
+    PROXY_init();
 
     /* --------------------------------------------------------
        Avvio del ciclo principale (menù interattivo)
     -------------------------------------------------------- */
-    proxy_run();
+    PROXY_run();
 
     return 0;
 }
