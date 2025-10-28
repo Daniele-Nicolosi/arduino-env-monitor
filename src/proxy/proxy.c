@@ -161,7 +161,7 @@ void PROXY_init(void) {
     I2C_init();
     BME280_init();
 
-    PROXY_configure();  // fase di setup interattivo
+    PROXY_configure();  
 
     OLED_init();
     BUTTONS_init();

@@ -3,10 +3,10 @@
 /* ------------------------------------------------------------
    Buffer circolari 
 ------------------------------------------------------------ */
-static volatile uint8_t rx_buf[UART_RX_BUF_SIZE];
+static volatile uint8_t rx_buf[UART_RX_BUF_SIZE]; // buffer di ricezione
 static volatile uint8_t rx_head = 0, rx_tail = 0;
 
-static volatile uint8_t tx_buf[UART_TX_BUF_SIZE];
+static volatile uint8_t tx_buf[UART_TX_BUF_SIZE]; // buffer di trasmissione 
 static volatile uint8_t tx_head = 0, tx_tail = 0;
 
 /* ------------------------------------------------------------
@@ -30,12 +30,12 @@ void UART_init(uint16_t ubrr) {
 ------------------------------------------------------------ */
 void UART_putChar(char data) {
     uint8_t next = (tx_head + 1) % UART_TX_BUF_SIZE;
-    while (next == tx_tail); // attende spazio libero
+    while (next == tx_tail); // il buffer è pieno, attende spazio libero
 
     tx_buf[tx_head] = data;
     tx_head = next;
 
-    UCSR0B |= (1 << UDRIE0); // abilita interrupt "data register empty"
+    UCSR0B |= (1 << UDRIE0); // abilita interrupt "data register empty" (UDR0 vuoto)
 }
 
 /* ------------------------------------------------------------
@@ -51,7 +51,7 @@ char UART_getChar(void) {
 
 /* ------------------------------------------------------------
    UART_putString()
-   Invia una stringa terminata da '\0'
+   Invia una stringa 
 ------------------------------------------------------------ */
 void UART_putString(const char *s) {
     while (*s) UART_putChar(*s++);
@@ -83,7 +83,7 @@ ISR(USART0_RX_vect) {
     uint8_t data = UDR0;
     uint8_t next = (rx_head + 1) % UART_RX_BUF_SIZE;
 
-    if (next != rx_tail) { // evita overflow
+    if (next != rx_tail) { // Controlla se il buffer non è pieno
         rx_buf[rx_head] = data;
         rx_head = next;
     }

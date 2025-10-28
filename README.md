@@ -17,7 +17,7 @@ Il progetto è composto da due componenti principali:
 All’avvio, il firmware:
 1. Inizializza le periferiche UART e I²C.  
 2. Chiede all’utente, tramite terminale, di configurare:
-   - Frequenza di campionamento (250 ms – 5000 ms)  
+   - Frequenza di campionamento (125 ms – 1000 ms)  
    - Unità di misura della temperatura (°C, K, °F)  
    - Unità di misura della pressione (hPa, bar)  
    - Abilitazione del log sul terminale  

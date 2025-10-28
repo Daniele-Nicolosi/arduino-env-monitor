@@ -20,14 +20,14 @@ void I2C_init(void) {
 uint8_t I2C_start(uint8_t device_addr, uint8_t mode) {
     // Invia condizione START
     TWCR = (1 << TWSTA) | (1 << TWEN) | (1 << TWINT);
-    while (!(TWCR & (1 << TWINT))); //Aspetta il completamento
+    while (!(TWCR & (1 << TWINT))); // Aspetta il completamento (TWINT settato a 1)
 
     // Invia indirizzo + bit R/W
     TWDR = (device_addr << 1) | (mode & 0x01);
     TWCR = (1 << TWEN) | (1 << TWINT);
     while (!(TWCR & (1 << TWINT)));
 
-    return (TWSR & 0xF8);
+    return (TWSR & 0xF8); // Unicamente i primi 5 bit sono significativi
 }
 
 /* ------------------------------------------------------------
@@ -36,7 +36,7 @@ uint8_t I2C_start(uint8_t device_addr, uint8_t mode) {
 ------------------------------------------------------------ */
 void I2C_stop(void) {
     TWCR = (1 << TWSTO) | (1 << TWEN) | (1 << TWINT);
-    _delay_us(10); // Attesa minima richiesta
+    _delay_us(10); 
 }
 
 /* ------------------------------------------------------------
@@ -56,9 +56,9 @@ uint8_t I2C_write(uint8_t data) {
    Legge un byte e invia ACK (continua la lettura)
 ------------------------------------------------------------ */
 uint8_t I2C_read_ack(void) {
-    TWCR = (1 << TWEN) | (1 << TWINT) | (1 << TWEA); // ACK
+    TWCR = (1 << TWEN) | (1 << TWINT) | (1 << TWEA); // ACK, altri byte da leggere
     while (!(TWCR & (1 << TWINT)));
-    return TWDR;  //Ritorna il byte letto
+    return TWDR;  // Ritorna il byte letto
 }
 
 /* ------------------------------------------------------------
