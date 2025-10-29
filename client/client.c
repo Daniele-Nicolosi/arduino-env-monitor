@@ -42,7 +42,7 @@ int serial_set_interface_attribs(int fd, int speed) {
     tty.c_cflag &= ~(PARENB | PARODD);
     tty.c_cflag &= ~CSTOPB;
 
-    // Lettura non bloccante (timeout 0.1 s)
+    // Lettura non bloccante 
     tty.c_cc[VMIN]  = 0;
     tty.c_cc[VTIME] = 1;
 
@@ -110,13 +110,12 @@ int main(int argc, const char** argv) {
 
         /* ----------------------------------------------------
            Input da tastiera → invio sulla seriale
-           Legge una riga con fgets(), la invia con '\n' finale.
+           Legge una riga con fgets().
         ---------------------------------------------------- */
         if (fds[0].revents & POLLIN) {
             char line[1024];
             if (!fgets(line, sizeof(line), stdin)) break;
             size_t len = strlen(line);
-            if (len && line[len-1] == '\n') line[len-1] = '\n';
             ssize_t written = write(fd, line, len);
             if (written < 0) perror("write");
         }
